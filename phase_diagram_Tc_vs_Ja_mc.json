@@ -1,0 +1,37 @@
+{
+  "Ja_grid": {
+    "max": 4.5,
+    "min": 0.0,
+    "num": 21
+  },
+  "T_scan": {
+    "Tmax": 6.0,
+    "Tmin": 0.4,
+    "coarse_step": 0.25,
+    "refine_step": 0.05,
+    "refine_window": 0.5
+  },
+  "mc": {
+    "L": 48,
+    "meas": 3500,
+    "nprocs": 0,
+    "replicas": 8,
+    "seed": 1,
+    "therm": 2500,
+    "thin": 4,
+    "update": "wolff"
+  },
+  "model": {
+    "J": 1.0,
+    "n": 2,
+    "phis": [
+      0.0,
+      2.0943951023931953,
+      4.1887902047863905
+    ]
+  },
+  "results": {
+    "n_points": 21,
+    "skipped": 0
+  }
+}

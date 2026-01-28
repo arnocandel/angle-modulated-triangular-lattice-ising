@@ -1,0 +1,198 @@
+\documentclass[smallextended]{svjour3} % EPJ journals (including EPJ B)
+\smartqed  % flush right qed marks, e.g. at end of proof
+\journalname{The European Physical Journal B}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{physics}
+\usepackage{microtype}
+\usepackage{hyperref}
+
+% Allow compilation from either:
+% - inside paper/  (images alongside main.tex)
+% - repository root (paper/...)
+\graphicspath{{./}{paper/}}
+
+% Include figures if present; otherwise render a placeholder box.
+\newcommand{\maybeincludegraphics}[2]{%
+  \begingroup
+  \edef\figA{\detokenize{#1}}%
+  \edef\figB{\detokenize{paper/#1}}%
+  \edef\figC{\detokenize{#1}}%
+  \IfFileExists{\figA}{%
+    \includegraphics[width=#2]{\figA}%
+  }{%
+    \IfFileExists{\figB}{%
+      \includegraphics[width=#2]{\figB}%
+    }{%
+      \IfFileExists{\figC}{%
+        \includegraphics[width=#2]{\figC}%
+      }{%
+        \fbox{Missing figure: \texttt{\detokenize{#1}}}%
+      }%
+    }%
+  }%
+  \endgroup
+}
+
+\title{Exact critical line of an angle-modulated triangular-lattice \\Ising model and Monte Carlo verification}
+\titlerunning{Angle-modulated triangular Ising critical line}
+\authorrunning{Candel and Rey}
+\date{Received: date / Accepted: date}
+
+\author{Arno Candel \and Michael Rey}
+\institute{Private\\
+\email{arno.candel@gmail.com}\\
+ORCID: 0009-0001-0262-3354}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We consider a nearest-neighbor Ising model on the triangular lattice with direction-dependent couplings
+$J_{ij}=J+J_a\cos(n\phi_{ij})$, motivated by bond-directional modulation.
+When the bond angles take only the three lattice directions, the model reduces to an anisotropic triangular Ising model with three couplings $J_k$.
+Using the exact triangular-lattice critical manifold, we compute the critical temperature $T_c$ as a function of the dimensionless modulation ratio $J_a/J$ across both the ferromagnetic and stripe regimes, including the gauge-equivalent two-negative-bond sector.
+We identify a singular decoupling point (for the paper case $n=2$) where two couplings vanish and prove that the finite-temperature transition disappears, $T_c=0$.
+Cluster Monte Carlo simulations with bootstrap uncertainty provide a numerical check of the analytic critical line and quantify finite-size effects.
+\emph{The exact critical manifold itself is classic} \cite{houtappel1950,wannier1950}; our contributions are its explicit application to the angle-modulated parametrization, the extension to the stripe sector via a gauge map, a transparent proof and asymptotic analysis of the $J_a=2J$ singularity, and a reproducible code+plot pipeline enabling direct analytic--MC overlays.
+\end{abstract}
+\keywords{Ising model \and triangular lattice \and anisotropy \and exact critical manifold \and Monte Carlo}
+
+\section{Introduction}
+Nearest-neighbor Ising models on the triangular lattice are a standard laboratory for geometric effects and anisotropy.
+Recent work has emphasized bond-directional modulations inspired by spin-lattice couplings, leading to angle-dependent exchanges of the form $J_{ij}=J+J_a\cos(n\phi_{ij})$ \cite{nascimento2024}.
+For bonds restricted to the three triangular directions, this model becomes an anisotropic triangular Ising model, for which the exact critical manifold is known \cite{houtappel1950,wannier1950}.
+
+The analytic input is the anisotropic triangular Ising critical manifold from early exact work \cite{houtappel1950,wannier1950}.
+The purpose of this manuscript is twofold. First, we connect that classic result to the angle-modulated parametrization used in recent bond-directional models \cite{nascimento2024}. Second, we provide a clean, reproducible analytic--numerical comparison.
+
+\paragraph{Contributions.}
+This work makes the following contributions:
+\begin{enumerate}
+  \item An explicit mapping from the angle-modulated rule $J_{ij}=J+J_a\cos(n\phi_{ij})$ to a one-parameter critical line $T_c(J_a)$ by solving the exact manifold \eqref{eq:tri-critical} for the three directional couplings $J_k(J_a)$.
+  \item An extension of the same critical manifold to the \emph{stripe} sector (exactly two negative couplings) via a gauge transformation $J_k\mapsto |J_k|$, clarifying when the closed-form condition remains applicable.
+  \item A transparent proof that the decoupling point ($J_a=2J$ in the paper case $n=2$) has no finite-temperature solution of \eqref{eq:tri-critical}, hence $T_c=0$, together with an asymptotic explanation of the logarithmically slow collapse toward this point.
+  \item A reproducible workflow (scripts + Makefile targets) that generates (a) MC estimates with uncertainty and (b) high-resolution analytic curves (including arbitrary-precision zooms near the singularity), enabling direct overlays.
+\end{enumerate}
+
+\section{Model}
+We consider Ising spins $s_i=\pm 1$ on a periodic $L\times L$ rhombus of the triangular lattice with Hamiltonian
+\begin{equation}
+\mathcal{H}=-\sum_{\langle i,j\rangle} J_{ij}\, s_i s_j,
+\qquad
+J_{ij}=J+J_a\cos(n\phi_{ij}).
+\label{eq:model}
+\end{equation}
+If the bond angles take only three values $\phi_k$ corresponding to the three lattice directions, the model reduces to three couplings
+\begin{equation}
+J_k = J+J_a\cos(n\phi_k),
+\qquad k\in\{1,2,3\}.
+\end{equation}
+We set $k_B=1$ and define $K_k=J_k/T$.
+\paragraph{Dimensionless control parameter.}
+Since an overall rescaling of energies rescales temperature, we report the phase boundary as \(T_c/J\) versus the dimensionless modulation \(a \equiv J_a/J\).
+In the figures we plot \(T_c\) in units where \(J=1\), and label the horizontal axis as \(J_a/J\) for clarity.
+
+\paragraph{Paper case ($n=2$).}
+For the conventional triangular directions with angles $\phi_1=0$, $\phi_2=2\pi/3$, and $\phi_3=4\pi/3$, and for $n=2$, one obtains
+\begin{equation}
+J_1=J+J_a,\qquad J_2=J_3=J-\frac{J_a}{2}.
+\label{eq:paper-case}
+\end{equation}
+For $J_a<2J$ all couplings are ferromagnetic. For $J_a>2J$, two couplings are negative and the ordered phase corresponds to stripes \cite{nascimento2024}.
+
+\section{Exact critical manifold and gaugeable stripe sector}
+For ferromagnetic couplings $J_k>0$ the anisotropic triangular Ising critical manifold can be written as \cite{houtappel1950}
+\begin{equation}
+e^{-2(K_1+K_2)}+e^{-2(K_2+K_3)}+e^{-2(K_3+K_1)}=1.
+\label{eq:tri-critical}
+\end{equation}
+
+\paragraph{Two-negative-bond (stripe) case.}
+If exactly two $J_k$ are negative, the bond-sign pattern is locally unfrustrated: each elementary triangle contains one bond of each type and the product of bond signs is $\mathrm{sgn}(J_1J_2J_3)=+1$. Therefore a site-dependent gauge transformation $s_i\mapsto \eta_i s_i$ with $\eta_i=\pm1$ can map the model to ferromagnetic couplings $|J_k|$ (equivalently, it relabels the ordered phase as stripes in the original variables).
+On a finite periodic $L\times L$ system, this gauge map can introduce a global twist (equivalently, change boundary conditions) when $L$ is odd; in the thermodynamic limit the critical temperature is unchanged. Consequently, the stripe-sector transition temperature is obtained by applying Eq.~\eqref{eq:tri-critical} to $K_k=|J_k|/T$.
+
+\section{Singular decoupling point and proof that \texorpdfstring{$T_c=0$}{Tc=0}}
+In the paper case \eqref{eq:paper-case}, the point $J_a=2J$ yields
+\begin{equation}
+J_1=3J,\qquad J_2=J_3=0.
+\end{equation}
+Substituting into \eqref{eq:tri-critical} gives
+\begin{equation}
+2e^{-2(3J+0)/T} + e^{-2(0+0)/T} = 2e^{-6J/T}+1 = 1.
+\end{equation}
+For any finite $T>0$, $e^{-6J/T}>0$ and therefore $2e^{-6J/T}+1>1$, so the equality cannot hold. Hence there is \emph{no} finite solution $T_c>0$ at $J_a=2J$, i.e.
+\begin{equation}
+T_c(J_a=2J)=0.
+\end{equation}
+
+\section{Asymptotics near \texorpdfstring{$J_a=2J$}{Ja=2J} (logarithmically slow collapse)}
+Let $\delta = |J_a-2J|$ so that $|J_2|=|J_3|=\delta/2$ and $J_1=J+J_a=3J+\mathcal{O}(\delta)$ near $J_a=2J$.
+Equation \eqref{eq:tri-critical} reduces (using $J_2=J_3$) to
+\begin{equation}
+2e^{-2(J_1+|J_2|)/T}+e^{-4|J_2|/T}=1,
+\label{eq:reduced}
+\end{equation}
+where the absolute values cover both the ferromagnetic side ($J_a<2J$) and the gauge-mapped stripe side ($J_a>2J$).
+For $\delta\to 0^+$, the second term approaches $1$. Using $e^{-4|J_2|/T}=1-(4|J_2|/T)+o(|J_2|/T)$, the balance requires
+\(e^{-2(J_1+|J_2|)/T_c}\sim 2|J_2|/T_c\), i.e. \(e^{-6J/T_c}\sim \delta/T_c\) to leading order, implying a logarithmically slow approach
+\begin{equation}
+T_c(\delta)\sim \frac{6J}{\ln(J/\delta)}\qquad (\delta\to 0^+),
+\end{equation}
+up to subleading $\ln T_c$ corrections. This explains why extremely small windows around $J_a=2$ can still yield $T_c=\mathcal{O}(10^{-1})$.
+
+\section{Monte Carlo simulation}
+We simulate the model on an $L\times L$ periodic rhombus with $N=L^2$ spins.
+In regimes where a gauge map yields ferromagnetic effective couplings, we use Wolff single-cluster updates \cite{wolff1989} to reduce critical slowing down; otherwise we fall back to Metropolis updates.
+We estimate the (pseudo-)critical temperature from the peak of the magnetic susceptibility,
+\(\chi = (N/T)(\langle m^2\rangle-\langle |m|\rangle^2)\),
+with \(m=\frac{1}{N}\sum_i s_i\).
+Uncertainties are estimated by block-averaging the time series and applying bootstrap resampling to the block estimates (see e.g.~\cite{binder1986}).
+All MC results shown are at finite \(L\); the resulting pseudo-critical point differs from the thermodynamic \(T_c\) by finite-size effects, but provides a practical numerical validation of the analytic curve.
+
+\section{Results}
+Figure~\ref{fig:phase} overlays the analytic $T_c(J_a/J)$ curve with MC estimates obtained from the susceptibility peak at fixed $L$.
+Finite-size effects shift the MC pseudo-critical point relative to the thermodynamic $T_c$; nevertheless the overall trend agrees with the exact line.
+In the phase-diagram annotations we use the standard shorthand: FE (ferromagnetic), PM (paramagnetic), and ST (stripe-ordered).
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics{phase_diagram_overlay.png}{0.85\linewidth}
+  \caption{Phase diagram from the exact triangular-lattice critical manifold ($T_c$ vs.\ $J_a/J$), with MC estimates for $L=36$; shaded regions indicate FE/PM/ST phases.}
+  \label{fig:phase}
+\end{figure}
+
+Figure~\ref{fig:zoom} shows a high-precision zoom around $J_a=2J$ illustrating the cusp and the slow decay toward $T_c=0$.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics{zoom_Ja_around_2.png}{0.85\linewidth}
+  \caption{High-precision analytic zoom around $J_a=2J$.}
+  \label{fig:zoom}
+\end{figure}
+
+\section{Conclusion}
+We provided an analytic critical line for an angle-modulated triangular-lattice Ising model by reducing to an anisotropic triangular Ising model and applying the exact critical manifold.
+The stripe sector (two negative couplings) is covered via a gauge map to $|J_k|$.
+At the decoupling point $J_a=2J$ (for $n=2$ and the standard triangular directions), we proved that the finite-temperature transition disappears, $T_c=0$, and the approach is logarithmically slow.
+Monte Carlo simulations with cluster updates corroborate the analytic curve and provide a practical numerical check.
+
+\section*{Data and code availability}
+All plots and numerical results in this manuscript are generated by scripts in the accompanying repository directory. The plotting scripts output PNG figures and also export CSV/JSON data for reproducibility. All code is available at https://github.com/arnocandel/angle-modulated-triangular-lattice-ising.
+
+\section*{Use of AI tools}
+AI tools were used for editorial purposes. All responsibility for the content lies with the authors.
+
+\section*{Author contributions}
+Arno Candel and Michael Rey contributed equally to conceptualization, software, analysis, visualization, and writing. Both authors approved the final manuscript.
+
+\section*{Competing interests}
+The authors declare no competing interests.
+
+
+\bibliographystyle{spmpsci}
+\bibliography{references}
+
+\end{document}
+
